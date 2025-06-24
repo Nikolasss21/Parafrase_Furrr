@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parafrase 2000+ Kata</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 Parafrase Professional</h1>
+            <p class="subtitle">Ubah teks Anda menjadi versi berbeda tanpa mengubah makna (Mendukung hingga 2000 kata)</p>
+        </header>
+        
+        <main>
+            <div class="input-section">
+                <div class="form-group">
+                    <label for="inputText">Masukkan teks yang ingin diparafrase:</label>
+                    <textarea id="inputText" placeholder="Ketik atau tempel teks Anda di sini..." autofocus></textarea>
+                    <div class="counter">
+                        <span id="wordCount">0</span> kata dari 2000 maksimal
+                    </div>
+                </div>
+                
+                <button id="paraphraseBtn" class="primary-btn">Parafrase Sekarang</button>
+                
+                <div class="loading" id="loadingIndicator">
+                    <div class="spinner"></div>
+                    <p>Memproses teks Anda... Harap tunggu ⏳</p>
+                    <p class="note">Proses mungkin memakan waktu beberapa menit untuk teks panjang</p>
+                </div>
+                
+                <div class="error" id="errorContainer"></div>
+            </div>
+            
+            <div class="result-section">
+                <h2>Hasil Parafrase:</h2>
+                <div class="success" id="successMessage">Parafrase berhasil!</div>
+                <div class="result-container">
+                    <div id="resultText"></div>
+                </div>
+                <button id="copyBtn" class="secondary-btn">Salin Hasil</button>
+            </div>
+        </main>
+        
+        <footer>
+            <div class="disclaimer">
+                <p><strong>Disclaimer:</strong> Hasil parafrase harus direview untuk memastikan keakuratan. Selalu sertakan sumber asli untuk menghindari plagiarisme.</p>
+            </div>
+            <p class="copyright">© 2023 Parafrase AI - Anti Plagiarisme</p>
+        </footer>
+    </div>
+    
+    <script>
+        // Hitung kata saat ketik
+        document.getElementById('inputText').addEventListener('input', function() {
+            const text = this.value.trim();
+            const wordCount = text ? text.split(/\s+/).length : 0;
+            document.getElementById('wordCount').textContent = wordCount;
+            
+            if (wordCount > 2000) {
+                this.style.borderColor = '#e74c3c';
+                document.getElementById('paraphraseBtn').disabled = true;
+            } else {
+                this.style.borderColor = '#3498db';
+                document.getElementById('paraphraseBtn').disabled = false;
+            }
+        });
+        
+        // Fungsi proses parafrase
+        document.getElementById('paraphraseBtn').addEventListener('click', processParaphrase);
+        
+        function processParaphrase() {
+            const text = document.getElementById('inputText').value.trim();
+            const wordCount = text ? text.split(/\s+/).length : 0;
+            
+            if (!text) {
+                showError('Harap masukkan teks terlebih dahulu');
+                return;
+            }
+            
+            if (wordCount > 2000) {
+                showError('Teks melebihi batas maksimal 2000 kata');
+                return;
+            }
+            
+            // Tampilkan loading
+            document.getElementById('loadingIndicator').style.display = 'flex';
+            document.getElementById('errorContainer').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('resultText').innerHTML = '';
+            document.getElementById('copyBtn').style.display = 'none';
+            
+            // Kirim permintaan ke server
+            fetch('/paraphrase', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `text=${encodeURIComponent(text)}`
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                
+                if (data.error) {
+                    showError(data.error);
+                } else {
+                    document.getElementById('resultText').innerHTML = 
+                        `<p>${data.result.replace(/\n/g, '<br>')}</p>`;
+                    document.getElementById('successMessage').style.display = 'block';
+                    document.getElementById('copyBtn').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                showError('Terjadi kesalahan: ' + error.message);
+            });
+        }
+        
+        // Fungsi untuk menampilkan error
+        function showError(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            errorContainer.textContent = message;
+            errorContainer.style.display = 'block';
+        }
+        
+        // Fungsi untuk menyalin hasil
+        document.getElementById('copyBtn').addEventListener('click', function() {
+            const resultText = document.getElementById('resultText').textContent;
+            navigator.clipboard.writeText(resultText)
+                .then(() => {
+                    alert('Teks berhasil disalin ke clipboard!');
+                })
+                .catch(err => {
+                    alert('Gagal menyalin teks: ' + err);
+                });
+        });
+    </script>
+</body>
+</html>
